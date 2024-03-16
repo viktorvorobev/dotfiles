@@ -1,0 +1,7 @@
+[user]
+	name = Viktor Vorobev
+	email = vikeyer@gmail.com
+[push]
+	default = simple
+[core]
+	editor = /usr/bin/vim
