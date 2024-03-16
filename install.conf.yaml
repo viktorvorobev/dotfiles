@@ -4,6 +4,12 @@
 - link:
     ~/.gitconfig: git/gitconfig
     ~/.tmux.conf: tmux/tmux.conf
+    ~/.zshrc: zsh/zshrc
+    ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions: zsh/zsh-autosuggestions
+    ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting: zsh/zsh-syntax-highlighting
+    ~/.oh-my-zsh/custom/themes/aphex.zsh-theme: zsh/aphex.zsh-theme
+    ~/.zprofile: zsh/zprofile
+    ~/.zprofile.d: zsh/zprofile.d
 
 # Shell commands to execute
 - shell:
