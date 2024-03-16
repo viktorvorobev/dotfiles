@@ -1,0 +1,6 @@
+# Remove dead links from home directory
+- clean: ['~']
+
+# Shell commands to execute
+- shell:
+  - [git submodule update --init --recursive, Installing submodules]
