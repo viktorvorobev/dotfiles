@@ -10,7 +10,10 @@
     ~/.oh-my-zsh/custom/themes/aphex.zsh-theme: zsh/aphex.zsh-theme
     ~/.zprofile: zsh/zprofile
     ~/.zprofile.d: zsh/zprofile.d
+    ~/.vim: vim/
+    ~/.vimrc: vim/vimrc
 
 # Shell commands to execute
 - shell:
   - [git submodule update --init --recursive, Installing submodules]
+  - vim +PluginInstall +qall
