@@ -3,6 +3,7 @@
 
 - link:
     ~/.gitconfig: git/gitconfig
+    ~/.tmux.conf: tmux/tmux.conf
 
 # Shell commands to execute
 - shell:
