@@ -12,6 +12,7 @@
     ~/.zprofile.d: zsh/zprofile.d
     ~/.vim: vim/
     ~/.vimrc: vim/vimrc
+    ~/.local/bin/hadolint: bin/hadolint
 
 # Shell commands to execute
 - shell:
