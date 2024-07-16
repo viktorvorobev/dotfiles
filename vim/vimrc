@@ -66,3 +66,14 @@ map <C-n> :NERDTreeToggle<CR>
 
 " spell check
 set spell spelllang=en_us
+
+" Toggle spellchecking
+function! ToggleSpellCheck()
+  set spell!
+  if &spell
+    echo "Spellcheck ON"
+  else
+    echo "Spellcheck OFF"
+  endif
+endfunction
+map <C-s> :call ToggleSpellCheck()<CR>
