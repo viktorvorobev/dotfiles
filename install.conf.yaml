@@ -1,5 +1,5 @@
 # Remove dead links from home directory
-- clean: ['~']
+- clean: ["~"]
 
 - link:
     ~/.gitconfig: git/gitconfig
@@ -16,5 +16,5 @@
 
 # Shell commands to execute
 - shell:
-  - [git submodule update --init --recursive, Installing submodules]
-  - vim +PluginInstall +qall
+    - [git submodule update --init --recursive, Installing submodules]
+    - vim +PluginInstall +qall
