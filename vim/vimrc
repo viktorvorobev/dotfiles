@@ -66,6 +66,7 @@ map <C-n> :NERDTreeToggle<CR>
 
 " spell check
 set spell spelllang=en_us
+set spell!
 
 " Toggle spellchecking
 function! ToggleSpellCheck()
