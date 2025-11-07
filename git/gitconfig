@@ -6,4 +6,4 @@
 [core]
 	editor = /usr/bin/vim
 [includeIf "gitdir:~/projects/emlid/"]
-    path = ~/projects/emlid/.gitconfig
+	path = ~/projects/emlid/.gitconfig
