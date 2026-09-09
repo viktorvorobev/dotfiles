@@ -152,15 +152,18 @@ gwclone() {
     fi
   fi
 
-  # 5. Set up local HEAD reference
+  # 5. Set up remote HEAD reference
   git remote set-head origin "$default_branch" 2>/dev/null
 
   # 6. Add default worktree
   git worktree add "$default_branch" "$default_branch"
 
+  # 7. Set up upstream tracking for fetch/pull/push
+  git -C "$default_branch" branch --set-upstream-to="origin/${default_branch}" "$default_branch"
+
   # Navigate into default branch directory
   cd "$default_branch" || return 1
-  echo "Done! Created worktree structure and checked out '${default_branch}' at: $(pwd)"
+  echo "Done! Created worktree structure, tracked 'origin/${default_branch}', and checked out at: $(pwd)"
 }
 
 # Create a new feature worktree and switch to it immediately
