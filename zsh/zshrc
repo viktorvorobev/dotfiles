@@ -166,36 +166,52 @@ gwclone() {
   echo "Done! Created worktree structure, tracked 'origin/${default_branch}', and checked out at: $(pwd)"
 }
 
-# Create a new feature worktree and switch to it immediately
-# Usage: gwadd <branch-or-folder-name> [base-branch]
+# Create or checkout a worktree for a local OR remote branch
+# Usage: gwadd <branch-name>
 gwadd() {
   if [ -z "$1" ]; then
-    echo "Usage: gwadd <branch-or-folder-name> [base-branch]"
+    echo "Usage: gwadd <branch-name>"
     return 1
   fi
 
-  local name="$1"
-  local base_branch="${2:-HEAD}"
+  local branch="$1"
   
-  # Normalize branch name (e.g., feature/login -> feature-login for folder name)
+  # Normalize branch name for folder path (e.g., feature/login -> feature-login)
   local folder_name
-  folder_name=$(echo "$name" | tr '/' '-')
-
-  # Determine path (assumes execution inside a sibling worktree directory)
+  folder_name=$(echo "$branch" | tr '/' '-')
   local target_dir="../${folder_name}"
+
+  # 1. Fetch latest changes and refs from origin
+  echo "Fetching latest remote branches..."
+  git fetch origin
 
   echo "Creating worktree at ${target_dir}..."
 
-  # Create branch and worktree if it doesn't exist, or checkout existing branch
-  if git rev-parse --verify "$name" >/dev/null 2>&1; then
-    git worktree add "$target_dir" "$name" || return 1
-  else
-    git worktree add -b "$name" "$target_dir" "$base_branch" || return 1
+  # 2. Check if worktree already exists for this branch
+  if [ -d "$target_dir" ]; then
+    echo "Worktree directory already exists. Switching into it..."
+    cd "$target_dir" || return 1
+    return 0
   fi
 
-  # Change into the new directory
+  # 3. Check if local branch already exists
+  if git rev-parse --verify "$branch" >/dev/null 2>&1; then
+    git worktree add "$target_dir" "$branch" || return 1
+
+  # 4. Check if remote branch exists on origin
+  elif git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+    echo "Found remote branch 'origin/$branch'. Setting up local tracking branch..."
+    git worktree add --track -b "$branch" "$target_dir" "origin/$branch" || return 1
+
+  # 5. Fallback: Create a brand-new local branch off current HEAD
+  else
+    echo "Branch '$branch' not found locally or remotely. Creating a new local branch..."
+    git worktree add -b "$branch" "$target_dir" HEAD || return 1
+  fi
+
+  # Step into the newly created worktree directory
   cd "$target_dir" || return 1
-  echo "Switched to new worktree: $(pwd)"
+  echo "Switched to worktree: $(pwd)"
 }
 
 # Remove a worktree and its corresponding local branch
