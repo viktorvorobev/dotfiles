@@ -166,6 +166,19 @@ gwclone() {
   echo "Done! Created worktree structure, tracked 'origin/${default_branch}', and checked out at: $(pwd)"
 }
 
+# Helper function: Finds the true bare project root directory containing .bare
+_gw_find_root() {
+  local dir="$PWD"
+  while [ "$dir" != "/" ]; do
+    if [ -d "$dir/.bare" ]; then
+      echo "$dir"
+      return 0
+    fi
+    dir=$(dirname "$dir")
+  done
+  return 1
+}
+
 # Create or checkout a worktree for a local OR remote branch
 # Usage: gwadd <branch-name>
 gwadd() {
@@ -174,42 +187,46 @@ gwadd() {
     return 1
   fi
 
+  local root_dir
+  root_dir=$(_gw_find_root)
+  if [ -z "$root_dir" ]; then
+    echo "Error: Not inside a bare worktree project (no .bare directory found)."
+    return 1
+  fi
+
   local branch="$1"
-  
-  # Normalize branch name for folder path (e.g., feature/login -> feature-login)
   local folder_name
   folder_name=$(echo "$branch" | tr '/' '-')
-  local target_dir="../${folder_name}"
+  local target_dir="${root_dir}/${folder_name}"
 
-  # 1. Fetch latest changes and refs from origin
+  # 1. Fetch latest changes from remote
   echo "Fetching latest remote branches..."
-  git fetch origin
+  git -C "$root_dir" fetch origin
 
-  echo "Creating worktree at ${target_dir}..."
-
-  # 2. Check if worktree already exists for this branch
+  # 2. Check if worktree directory already exists
   if [ -d "$target_dir" ]; then
     echo "Worktree directory already exists. Switching into it..."
     cd "$target_dir" || return 1
     return 0
   fi
 
+  echo "Creating worktree at ${target_dir}..."
+
   # 3. Check if local branch already exists
-  if git rev-parse --verify "$branch" >/dev/null 2>&1; then
-    git worktree add "$target_dir" "$branch" || return 1
+  if git -C "$root_dir" rev-parse --verify "$branch" >/dev/null 2>&1; then
+    git -C "$root_dir" worktree add "$target_dir" "$branch" || return 1
 
   # 4. Check if remote branch exists on origin
-  elif git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+  elif git -C "$root_dir" rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
     echo "Found remote branch 'origin/$branch'. Setting up local tracking branch..."
-    git worktree add --track -b "$branch" "$target_dir" "origin/$branch" || return 1
+    git -C "$root_dir" worktree add --track -b "$branch" "$target_dir" "origin/$branch" || return 1
 
-  # 5. Fallback: Create a brand-new local branch off current HEAD
+  # 5. Fallback: Create a brand-new local branch off HEAD
   else
-    echo "Branch '$branch' not found locally or remotely. Creating a new local branch..."
-    git worktree add -b "$branch" "$target_dir" HEAD || return 1
+    echo "Branch '$branch' not found locally or remotely. Creating new local branch..."
+    git -C "$root_dir" worktree add -b "$branch" "$target_dir" HEAD || return 1
   fi
 
-  # Step into the newly created worktree directory
   cd "$target_dir" || return 1
   echo "Switched to worktree: $(pwd)"
 }
@@ -217,10 +234,22 @@ gwadd() {
 # Remove a worktree and its corresponding local branch
 # Usage: gwrm [worktree-folder-or-branch-name]
 gwrm() {
+  local root_dir
+  root_dir=$(_gw_find_root)
+  if [ -z "$root_dir" ]; then
+    echo "Error: Not inside a bare worktree project (no .bare directory found)."
+    return 1
+  fi
+
   local target="$1"
 
-  # If no target specified, offer to delete the CURRENT worktree directory
+  # If no target specified, offer to delete the CURRENT directory if inside a worktree
   if [ -z "$target" ]; then
+    if [ "$PWD" -ef "$root_dir" ]; then
+      echo "Error: You are in the project root. Specify a branch or worktree folder to remove."
+      return 1
+    fi
+
     local current_dir
     current_dir=$(basename "$PWD")
     
@@ -233,42 +262,39 @@ gwrm() {
     target="$current_dir"
   fi
 
-  # Resolve folder name and branch name
   local folder_name
   folder_name=$(echo "$target" | tr '/' '-')
-  
-  # Determine path relative to execution
-  local target_path="../${folder_name}"
-  if [ -d "$target" ]; then
-    target_path="$target"
-  fi
+  local target_path="${root_dir}/${folder_name}"
 
-  # Prevent accidental deletion of main workspace branches
+  # Protect main/master branches
   if [[ "$folder_name" == "main" || "$folder_name" == "master" ]]; then
-    echo "Error: Refusing to delete the primary branch ('$folder_name')."
+    echo "Error: Refusing to delete primary branch ('$folder_name')."
     return 1
   fi
 
-  # Get the branch name tied to this worktree before removing it
+  if [ ! -d "$target_path" ]; then
+    echo "Error: Worktree directory not found at '${target_path}'"
+    return 1
+  fi
+
+  # Identify current active branch of target worktree
   local branch_name
   branch_name=$(git -C "$target_path" branch --show-current 2>/dev/null)
 
-  # If operating inside the directory being removed, step out first
-  if [[ "$PWD" -ef "$target_path" ]]; then
-    cd .. || return 1
+  # Step out of target directory if currently inside it
+  if [[ "$PWD" == "$target_path"* ]]; then
+    cd "$root_dir" || return 1
   fi
 
   echo "Removing worktree at '${target_path}'..."
-  git worktree remove --force "$target_path" || return 1
+  git -C "$root_dir" worktree remove --force "$target_path" || return 1
 
-  # Delete the corresponding branch if it exists
-  if [ -n "$branch_name" ] && git rev-parse --verify "$branch_name" >/dev/null 2>&1; then
+  # Delete local branch reference
+  if [ -n "$branch_name" ] && git -C "$root_dir" rev-parse --verify "$branch_name" >/dev/null 2>&1; then
     echo "Deleting branch '${branch_name}'..."
-    git branch -D "$branch_name"
+    git -C "$root_dir" branch -D "$branch_name"
   fi
 
-  # Prune obsolete worktree administrative data
-  git worktree prune
-
+  git -C "$root_dir" worktree prune
   echo "Successfully removed worktree and branch."
 }
